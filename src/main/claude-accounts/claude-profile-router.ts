@@ -1,3 +1,4 @@
+import { assertApiProviderAccountHome, apiProviderUsageNotice } from '../api-provider-account'
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -123,10 +124,10 @@ export class ClaudeProfileRouter {
    * same email, so an account saved before per-account folders logs nobody out.
    */
   coveredBySystemDefault(accountId: string): boolean {
-    if (this.accountLogin(accountId)) {
+    const saved = findClaudeAccount(this.args.getSettings(), accountId)
+    if (saved?.apiProvider || this.accountLogin(accountId)) {
       return false
     }
-    const saved = findClaudeAccount(this.args.getSettings(), accountId)
     const systemDefault = this.systemDefaultLogin()
     return Boolean(saved && systemDefault && isSameClaudeLogin(saved, systemDefault))
   }
@@ -182,6 +183,10 @@ export class ClaudeProfileRouter {
   /** Refreshes the routed folder first; only a first setup that fails stops the launch. */
   async prepareLaunch(): Promise<ClaudeRuntimeAuthPreparation> {
     const selected = this.selectedProfile()
+    assertApiProviderAccountHome(
+      selected?.home ?? null,
+      findClaudeAccount(this.args.getSettings(), selected?.accountId ?? '')?.apiProvider
+    )
     // Why wait only without the account's own login: System default, and whether it covers the
     // account, depend on the login shell's CLAUDE_CONFIG_DIR; setup awaits it itself.
     if (!selected || !this.accountLogin(selected.accountId)) {
@@ -319,7 +324,6 @@ export class ClaudeProfileRouter {
   }
 
   preparation(): ClaudeRuntimeAuthPreparation {
-    const profile = this.routedProfile()
     const home = this.routedHome()
     return {
       configDir: home ?? this.systemDefaultHome(),
@@ -327,7 +331,8 @@ export class ClaudeProfileRouter {
       wslDistro: null,
       wslLinuxConfigDir: null,
       envPatch: this.launchEnv(),
-      provenance: home ? `profile:${profile?.accountId}` : 'system'
+      ...apiProviderUsageNotice(home),
+      provenance: home ? `profile:${this.selectedProfile()?.accountId}` : 'system'
     }
   }
 

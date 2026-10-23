@@ -1,6 +1,7 @@
+import { preserveClaudeApiProviderSettings } from '../api-provider-account'
 import { randomUUID } from 'node:crypto'
 import { existsSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { isDefinitiveAbsence } from '../../shared/definitive-filesystem-absence'
 import {
   resolveClaudeGlobalConfigFile,
@@ -171,6 +172,14 @@ function settingsWithoutOrcaHooks(value: Record<string, unknown>): string {
 function copySettings(source: string, target: string): ClaudeProfileSurfaceOutcome {
   const input = readClaudeProfileObject(source)
   const current = readClaudeProfileObject(target)
+  if (current.kind === 'present') {
+    const sourceValue = input.kind === 'present' ? input.value : current.value
+    const merged = preserveClaudeApiProviderSettings(dirname(target), sourceValue, current.value)
+    if (merged !== sourceValue) {
+      writeFileSync(target, `${JSON.stringify(merged, null, 2)}\n`, { mode: 0o600 })
+      return 'synced'
+    }
+  }
   // Why by value: the hook installer rewrites the copy in its own layout after every refresh.
   if (
     input.kind === 'present' &&
