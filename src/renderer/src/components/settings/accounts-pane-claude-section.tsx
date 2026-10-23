@@ -123,10 +123,7 @@ export function renderClaudeAccountsSection(model: AccountsPaneSectionModel): Re
               <ApiProviderAccountDialog
                 agent="claude"
                 disabled={claudeAction !== 'idle' || accountRuntimeUnavailable}
-                onAdd={async (input) => {
-                  const state = await window.api.claudeAccounts.addApiKey(input)
-                  await runClaudeAccountAction('adding', async () => state)
-                }}
+                runAction={runClaudeAccountAction}
               />
             ) : null}
 
@@ -342,7 +339,11 @@ export function renderClaudeAccountsSection(model: AccountsPaneSectionModel): Re
                               'Sign in again to use this account'
                             )
                           : account.apiProvider
-                            ? `API key billing · ${account.apiProvider.model}`
+                            ? translate(
+                                'accounts.api.billingModel',
+                                'API key billing · {{model}}',
+                                { model: account.apiProvider.model }
+                              )
                             : account.organizationName
                               ? `${account.organizationName} · ${formatAccountTimestamp(account.lastAuthenticatedAt)}`
                               : formatAccountTimestamp(account.lastAuthenticatedAt)}

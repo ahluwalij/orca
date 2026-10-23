@@ -97,6 +97,7 @@ export class ClaudeAccountSelection {
   private summarize(account: ClaudeManagedAccount): ClaudeManagedAccountSummary {
     const summary = this.savedSummary(account)
     if (account.apiProvider) {
+      this.runtimeAuth.router.accountHome(account.id)
       return summary
     }
     if (account.managedAuthRuntime === 'wsl') {

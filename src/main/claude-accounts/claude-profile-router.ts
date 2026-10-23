@@ -183,10 +183,6 @@ export class ClaudeProfileRouter {
   /** Refreshes the routed folder first; only a first setup that fails stops the launch. */
   async prepareLaunch(): Promise<ClaudeRuntimeAuthPreparation> {
     const selected = this.selectedProfile()
-    assertApiProviderAccountHome(
-      selected?.home ?? null,
-      findClaudeAccount(this.args.getSettings(), selected?.accountId ?? '')?.apiProvider
-    )
     // Why wait only without the account's own login: System default, and whether it covers the
     // account, depend on the login shell's CLAUDE_CONFIG_DIR; setup awaits it itself.
     if (!selected || !this.accountLogin(selected.accountId)) {
@@ -247,10 +243,13 @@ export class ClaudeProfileRouter {
   }
 
   private describe(accountId: string): ClaudeProfileDescriptor {
-    return describeClaudeProfile(this.args.dataRoot, accountId, {
+    const profile = describeClaudeProfile(this.args.dataRoot, accountId, {
       executionHostId: 'local',
       runtime: 'host'
     })
+    const account = findClaudeAccount(this.args.getSettings(), accountId)
+    assertApiProviderAccountHome(profile.home, account?.apiProvider, 'claude')
+    return profile
   }
 
   /** One setup per account at a time; a later request reuses the running one. */
@@ -371,6 +370,7 @@ export class ClaudeProfileRouter {
     return {
       configDir: home,
       envPatch: { CLAUDE_CONFIG_DIR: home },
+      ...apiProviderUsageNotice(home),
       provenance: `profile:${accountId}`
     }
   }

@@ -1,4 +1,5 @@
 import { readApiProviderAccount, applyCodexApiProviderConfig } from '../api-provider-account'
+import { readCodexTopLevelModelProvider } from './codex-model-provider-config'
 import { readMcpServerTomlOwnership } from './config-toml-mcp-servers'
 import { dirname, join } from 'node:path'
 import { observeAgentStateFile } from './codex-path-observation'
@@ -39,6 +40,16 @@ export function syncSystemConfigIntoManagedCodexHome(
     syncSystemConfigIntoLegacySharedCodexHome(homes)
     applyCodexApiProviderConfig(homes.runtimeHomePath, apiProvider)
     return
+  }
+  const config = observeAgentStateFile(join(homes.runtimeHomePath, 'config.toml'))
+  if (config.kind === 'indeterminate') {
+    throw config.error
+  }
+  if (
+    config.kind === 'present' &&
+    readCodexTopLevelModelProvider(config.value) === 'orca_api_account'
+  ) {
+    throw new Error('The API account configuration is missing. Remove and add this account again.')
   }
   if (!mirrorSystemConfigIntoManagedCodexHome(homes)) {
     // Why: a stalled settings mirror must not also withhold the daemon guard,

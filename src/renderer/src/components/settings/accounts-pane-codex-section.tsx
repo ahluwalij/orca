@@ -166,10 +166,7 @@ export function renderCodexAccountsSection(model: AccountsPaneSectionModel): Rea
               <ApiProviderAccountDialog
                 agent="codex"
                 disabled={codexAction !== 'idle' || accountRuntimeUnavailable}
-                onAdd={async (input) => {
-                  const state = await window.api.codexAccounts.addApiKey(input)
-                  await runCodexAccountAction('adding', async () => state)
-                }}
+                runAction={runCodexAccountAction}
               />
             ) : null}
 
